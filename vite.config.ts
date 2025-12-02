@@ -4,6 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
+  base: "./",   // <---- REQUIRED FOR AMPLIFY
   server: {
     host: "::",
     port: 8080,
