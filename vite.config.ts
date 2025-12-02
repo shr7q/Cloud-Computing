@@ -4,7 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
-  base: "./",  // <-- THIS FIXES THE BLANK PAGE IN PRODUCTION
   server: {
     host: "::",
     port: 8080,
