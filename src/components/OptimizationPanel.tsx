@@ -25,7 +25,7 @@ const OptimizationPanel = () => {
     try {
       // TODO: Replace with actual API call
       await new Promise((resolve) => setTimeout(resolve, 2000));
-      
+
       // Mock optimization results
       const mockResults: OptimizationResult = {
         carriers: [

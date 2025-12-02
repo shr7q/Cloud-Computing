@@ -3,36 +3,62 @@ import StatsCard from "@/components/StatsCard";
 import WorkOrderForm from "@/components/WorkOrderForm";
 import OrdersTable from "@/components/OrdersTable";
 import OptimizationPanel from "@/components/OptimizationPanel";
+import CarriersTable from "@/components/CarriersTable";
+
 import { Truck, Clock, TrendingUp, MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const Index = () => {
+  const [carriers, setCarriers] = useState([]);
+  const [orders, setOrders] = useState([]);
+
+  const addOrder = (order) => {
+    setOrders((prev) => [...prev, order]);
+  };
+
+  const updateOrder = (orderId, updates) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId ? { ...order, ...updates } : order
+      )
+    );
+  };
+
+  useEffect(() => {
+    const fetchCarriers = async () => {
+      try {
+        const res = await fetch(process.env.NEXT_PUBLIC_CARRIER_API_URL);
+        const data = await res.json();
+        setCarriers(data);
+      } catch (err) {
+        console.error("Failed to fetch carriers:", err);
+      }
+    };
+
+    fetchCarriers();
+  }, []);
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Stats Grid */}
         <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard
             title="Active Orders"
-            value="24"
+            value={orders.length.toString()}
             icon={Truck}
-            trend="+12% from last week"
-            trendUp={true}
           />
           <StatsCard
             title="Avg. Response Time"
             value="18 min"
             icon={Clock}
-            trend="-5% improvement"
-            trendUp={true}
           />
           <StatsCard
             title="Fleet Utilization"
             value="87%"
             icon={TrendingUp}
-            trend="+3% this month"
-            trendUp={true}
           />
           <StatsCard
             title="Total Distance Today"
@@ -41,17 +67,22 @@ const Index = () => {
           />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Left Column - Form */}
-          <div className="lg:col-span-1">
-            <WorkOrderForm />
-          </div>
+        {/* Main Content */}
+        <div className="space-y-6">
+          <CarriersTable carriers={carriers} />
 
-          {/* Right Column - Orders & Optimization */}
-          <div className="space-y-6 lg:col-span-2">
-            <OrdersTable />
-            <OptimizationPanel />
+          <div className="grid gap-6 lg:grid-cols-3 mt-6">
+            <div className="lg:col-span-1">
+              <WorkOrderForm addOrder={addOrder} />
+            </div>
+
+            <div className="space-y-6 lg:col-span-2">
+              <OrdersTable orders={orders} />
+              <OptimizationPanel
+                orders={orders}
+                updateOrder={updateOrder}
+              />
+            </div>
           </div>
         </div>
       </main>
