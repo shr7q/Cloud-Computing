@@ -76,7 +76,7 @@ const WorkOrderForm = ({ addOrder }) => {
       // API URL
       // -----------------------------
       const PREDICT_API_URL =
-        "https://scunlt76a3.execute-api.us-east-1.amazonaws.com/predict"; 
+        "https://scunlt76a3.execute-api.us-east-1.amazonaws.com/predict";
       // ❗ IMPORTANT: Make sure /predict exists in your API routes
 
       const mlResponse = await fetch(PREDICT_API_URL, {
@@ -135,7 +135,7 @@ const WorkOrderForm = ({ addOrder }) => {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        
+
         {/* CLIENT NAME */}
         <div className="space-y-2">
           <Label htmlFor="clientName">Client Name</Label>
