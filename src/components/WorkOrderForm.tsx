@@ -37,9 +37,9 @@ const workOrderSchema = z.object({
     ),
 
   requestedDate: z.string().optional(),
-  requestedHour: z.string().optional(),
-  requestedMinute: z.string().optional(),
-  requestedAmPm: z.string().optional(),
+
+  // NEW FIELD — 24 hour format
+  requestedHour24: z.string().min(1, "Hour required"),
 });
 
 type WorkOrderFormData = z.infer<typeof workOrderSchema>;
@@ -60,27 +60,24 @@ const WorkOrderForm = ({ addOrder }) => {
     setIsSubmitting(true);
 
     try {
-      // Convert date → dayOfWeek (0–6)
-      let dayOfWeek = null;
+      // Convert date → weekday (0–6)
+      let dayOfWeek;
       if (data.requestedDate) {
         dayOfWeek = new Date(data.requestedDate).getDay();
       } else {
         dayOfWeek = new Date().getDay();
       }
 
-      // Build time string
-      const timeString = `${data.requestedHour}:${data.requestedMinute} ${data.requestedAmPm}`;
-
-      // Build ML payload
+      // Build ML payload (NO time string, only hour)
       const mlPayload = {
         clientName: data.clientName,
         dropoffLat: parseFloat(data.dropoffLat),
         dropoffLon: parseFloat(data.dropoffLon),
         dayOfWeek,
-        time: timeString,
+        hour: parseInt(data.requestedHour24),  // ⭐ ONLY THE HOUR
       };
-        
-      //API url
+
+      // API URL
       const PREDICT_API_URL = "https://scunlt76a3.execute-api.us-east-1.amazonaws.com";
 
       const mlResponse = await fetch(PREDICT_API_URL, {
@@ -99,11 +96,11 @@ const WorkOrderForm = ({ addOrder }) => {
       const etaMinutes = prediction.etaMinutes ?? 0;
       const distanceKm = prediction.distanceKm ?? 0;
 
-      // Build final work order
+      // Build work order
       const newOrder = {
         id: "WO-" + Math.floor(Math.random() * 10000),
         clientName: data.clientName,
-        requestedTime: `${data.requestedDate} ${timeString}`,
+        requestedTime: `${data.requestedDate} ${data.requestedHour24}:00`,
         distance: distanceKm,
         eta: etaMinutes,
         status: "pending",
@@ -145,9 +142,7 @@ const WorkOrderForm = ({ addOrder }) => {
             className="bg-secondary border-border"
           />
           {errors.clientName && (
-            <p className="text-sm text-destructive">
-              {errors.clientName.message}
-            </p>
+            <p className="text-sm text-destructive">{errors.clientName.message}</p>
           )}
         </div>
 
@@ -161,9 +156,7 @@ const WorkOrderForm = ({ addOrder }) => {
               className="bg-secondary border-border"
             />
             {errors.dropoffLat && (
-              <p className="text-sm text-destructive">
-                {errors.dropoffLat.message}
-              </p>
+              <p className="text-sm text-destructive">{errors.dropoffLat.message}</p>
             )}
           </div>
 
@@ -176,9 +169,7 @@ const WorkOrderForm = ({ addOrder }) => {
               className="bg-secondary border-border"
             />
             {errors.dropoffLon && (
-              <p className="text-sm text-destructive">
-                {errors.dropoffLon.message}
-              </p>
+              <p className="text-sm text-destructive">{errors.dropoffLon.message}</p>
             )}
           </div>
         </div>
@@ -188,31 +179,26 @@ const WorkOrderForm = ({ addOrder }) => {
           <Input type="date" {...register("requestedDate")} className="bg-secondary border-border" />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label>Hour</Label>
-            <select {...register("requestedHour")} className="bg-secondary border-border rounded-md p-2">
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Minute</Label>
-            <select {...register("requestedMinute")} className="bg-secondary border-border rounded-md p-2">
-              <option value="00">00</option>
-              <option value="30">30</option>
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <Label>AM/PM</Label>
-            <select {...register("requestedAmPm")} className="bg-secondary border-border rounded-md p-2">
-              <option value="AM">AM</option>
-              <option value="PM">PM</option>
-            </select>
-          </div>
+        {/* ⭐ NEW — 24 hour selector (00–23) */}
+        <div className="space-y-2">
+          <Label>Departure Hour (24-hour format)</Label>
+          <select
+            {...register("requestedHour24")}
+            className="bg-secondary border-border rounded-md p-2 w-full"
+          >
+            {Array.from({ length: 24 }, (_, i) =>
+              i.toString().padStart(2, "0")
+            ).map((hour) => (
+              <option key={hour} value={hour}>
+                {hour}:00
+              </option>
+            ))}
+          </select>
+          {errors.requestedHour24 && (
+            <p className="text-sm text-destructive">
+              {errors.requestedHour24.message}
+            </p>
+          )}
         </div>
 
         <Button
