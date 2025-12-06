@@ -11,9 +11,6 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 
-// -----------------------
-// VALIDATION SCHEMA
-// -----------------------
 const workOrderSchema = z.object({
   clientName: z.string().trim().min(1, "Client name is required").max(100),
 
@@ -47,9 +44,6 @@ const workOrderSchema = z.object({
 
 type WorkOrderFormData = z.infer<typeof workOrderSchema>;
 
-// -----------------------
-// COMPONENT
-// -----------------------
 const WorkOrderForm = ({ addOrder }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -62,46 +56,57 @@ const WorkOrderForm = ({ addOrder }) => {
     resolver: zodResolver(workOrderSchema),
   });
 
-  // -----------------------
-  // SUBMIT HANDLER
-  // -----------------------
   const onSubmit = async (data: WorkOrderFormData) => {
     setIsSubmitting(true);
 
     try {
-      // Build timestamp manually
-      let finalTimestamp = null;
-
-      if (
-        data.requestedDate &&
-        data.requestedHour &&
-        data.requestedMinute &&
-        data.requestedAmPm
-      ) {
-        const hour = parseInt(data.requestedHour);
-        const minute = data.requestedMinute;
-
-        let formattedHour = hour % 12;
-        if (data.requestedAmPm === "PM") formattedHour += 12;
-
-        finalTimestamp = new Date(
-          `${data.requestedDate}T${String(formattedHour).padStart(
-            2,
-            "0"
-          )}:${minute}:00`
-        ).toISOString();
+      // Convert date → dayOfWeek (0–6)
+      let dayOfWeek = null;
+      if (data.requestedDate) {
+        dayOfWeek = new Date(data.requestedDate).getDay();
+      } else {
+        dayOfWeek = new Date().getDay();
       }
 
-      // Create order
+      // Build time string
+      const timeString = `${data.requestedHour}:${data.requestedMinute} ${data.requestedAmPm}`;
+
+      // Build ML payload
+      const mlPayload = {
+        clientName: data.clientName,
+        dropoffLat: parseFloat(data.dropoffLat),
+        dropoffLon: parseFloat(data.dropoffLon),
+        dayOfWeek,
+        time: timeString,
+      };
+        
+      //API url
+      const PREDICT_API_URL = "https://scunlt76a3.execute-api.us-east-1.amazonaws.com";
+
+      const mlResponse = await fetch(PREDICT_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(mlPayload),
+      });
+
+      if (!mlResponse.ok) {
+        const text = await mlResponse.text();
+        throw new Error(text || "Prediction API failed");
+      }
+
+      const prediction = await mlResponse.json();
+
+      const etaMinutes = prediction.etaMinutes ?? 0;
+      const distanceKm = prediction.distanceKm ?? 0;
+
+      // Build final work order
       const newOrder = {
         id: "WO-" + Math.floor(Math.random() * 10000),
         clientName: data.clientName,
-        requestedTime: finalTimestamp || new Date().toISOString(),
-
-        distance: 0,
-        eta: 0,
+        requestedTime: `${data.requestedDate} ${timeString}`,
+        distance: distanceKm,
+        eta: etaMinutes,
         status: "pending",
-
         dropoffLat: data.dropoffLat,
         dropoffLon: data.dropoffLon,
       };
@@ -109,22 +114,20 @@ const WorkOrderForm = ({ addOrder }) => {
       addOrder(newOrder);
 
       toast.success("Work order submitted successfully", {
-        description: `Order for ${data.clientName} has been added to the queue.`,
+        description: `Order for ${data.clientName} has been added.`,
       });
 
       reset();
-    } catch (error) {
+    } catch (error: any) {
+      console.error(error);
       toast.error("Failed to submit work order", {
-        description: "Please try again.",
+        description: error.message || "Please try again.",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // -----------------------
-  // UI
-  // -----------------------
   return (
     <Card className="gradient-card border-border p-6">
       <div className="mb-6 flex items-center gap-2">
@@ -133,7 +136,6 @@ const WorkOrderForm = ({ addOrder }) => {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* CLIENT NAME */}
         <div className="space-y-2">
           <Label htmlFor="clientName">Client Name</Label>
           <Input
@@ -149,7 +151,6 @@ const WorkOrderForm = ({ addOrder }) => {
           )}
         </div>
 
-        {/* DROPOFF COORDINATES */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="dropoffLat">Dropoff Latitude</Label>
@@ -182,38 +183,24 @@ const WorkOrderForm = ({ addOrder }) => {
           </div>
         </div>
 
-        {/* DATE PICKER */}
         <div className="space-y-2">
           <Label>Requested Start Date (Optional)</Label>
-          <Input
-            type="date"
-            {...register("requestedDate")}
-            className="bg-secondary border-border"
-          />
+          <Input type="date" {...register("requestedDate")} className="bg-secondary border-border" />
         </div>
 
-        {/* TIME PICKER */}
         <div className="grid grid-cols-3 gap-4">
           <div className="space-y-2">
             <Label>Hour</Label>
-            <select
-              {...register("requestedHour")}
-              className="bg-secondary border-border rounded-md p-2"
-            >
+            <select {...register("requestedHour")} className="bg-secondary border-border rounded-md p-2">
               {Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-                <option key={h} value={h}>
-                  {h}
-                </option>
+                <option key={h} value={h}>{h}</option>
               ))}
             </select>
           </div>
 
           <div className="space-y-2">
             <Label>Minute</Label>
-            <select
-              {...register("requestedMinute")}
-              className="bg-secondary border-border rounded-md p-2"
-            >
+            <select {...register("requestedMinute")} className="bg-secondary border-border rounded-md p-2">
               <option value="00">00</option>
               <option value="30">30</option>
             </select>
@@ -221,17 +208,13 @@ const WorkOrderForm = ({ addOrder }) => {
 
           <div className="space-y-2">
             <Label>AM/PM</Label>
-            <select
-              {...register("requestedAmPm")}
-              className="bg-secondary border-border rounded-md p-2"
-            >
+            <select {...register("requestedAmPm")} className="bg-secondary border-border rounded-md p-2">
               <option value="AM">AM</option>
               <option value="PM">PM</option>
             </select>
           </div>
         </div>
 
-        {/* SUBMIT */}
         <Button
           type="submit"
           disabled={isSubmitting}
