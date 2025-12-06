@@ -76,7 +76,7 @@ const WorkOrderForm = ({ addOrder }) => {
       // API URL
       // -----------------------------
       const PREDICT_API_URL =
-        "https://scunlt76a3.execute-api.us-east-1.amazonaws.com/predict";
+        "https://scunlt76a3.execute-api.us-east-1.amazonaws.com/prod/predict";
 
       const mlResponse = await fetch(PREDICT_API_URL, {
         method: "POST",
