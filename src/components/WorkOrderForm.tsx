@@ -77,7 +77,6 @@ const WorkOrderForm = ({ addOrder }) => {
       // -----------------------------
       const PREDICT_API_URL =
         "https://scunlt76a3.execute-api.us-east-1.amazonaws.com/predict";
-      // ❗ IMPORTANT: Make sure /predict exists in your API routes
 
       const mlResponse = await fetch(PREDICT_API_URL, {
         method: "POST",
