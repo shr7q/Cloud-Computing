@@ -11,6 +11,9 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2, Plus } from "lucide-react";
 
+// -----------------------------
+// Validation Schema
+// -----------------------------
 const workOrderSchema = z.object({
   clientName: z.string().trim().min(1, "Client name is required").max(100),
 
@@ -18,10 +21,7 @@ const workOrderSchema = z.object({
     .string()
     .trim()
     .refine(
-      (val) =>
-        !isNaN(parseFloat(val)) &&
-        parseFloat(val) >= -90 &&
-        parseFloat(val) <= 90,
+      (val) => !isNaN(parseFloat(val)) && parseFloat(val) >= -90 && parseFloat(val) <= 90,
       { message: "Valid latitude required (-90 to 90)" }
     ),
 
@@ -29,17 +29,12 @@ const workOrderSchema = z.object({
     .string()
     .trim()
     .refine(
-      (val) =>
-        !isNaN(parseFloat(val)) &&
-        parseFloat(val) >= -180 &&
-        parseFloat(val) <= 180,
+      (val) => !isNaN(parseFloat(val)) && parseFloat(val) >= -180 && parseFloat(val) <= 180,
       { message: "Valid longitude required (-180 to 180)" }
     ),
 
-  requestedDate: z.string().optional(),
-
-  // NEW FIELD — 24 hour format
-  requestedHour24: z.string().min(1, "Hour required"),
+  requestedDate: z.string().optional(),    // <-- FIXED NAME
+  requestedHour24: z.string().min(1, "Hour required"), // 00–23
 });
 
 type WorkOrderFormData = z.infer<typeof workOrderSchema>;
@@ -56,29 +51,33 @@ const WorkOrderForm = ({ addOrder }) => {
     resolver: zodResolver(workOrderSchema),
   });
 
+  // -----------------------------
+  // SUBMIT HANDLER
+  // -----------------------------
   const onSubmit = async (data: WorkOrderFormData) => {
     setIsSubmitting(true);
 
     try {
       // Convert date → weekday (0–6)
-      let dayOfWeek;
-      if (data.requestedDate) {
-        dayOfWeek = new Date(data.requestedDate).getDay();
-      } else {
-        dayOfWeek = new Date().getDay();
-      }
+      const dayOfWeek = data.requestedDate
+        ? new Date(data.requestedDate).getDay()
+        : new Date().getDay();
 
-      // Build ML payload (NO time string, only hour)
+      // Build ML payload
       const mlPayload = {
         clientName: data.clientName,
         dropoffLat: parseFloat(data.dropoffLat),
         dropoffLon: parseFloat(data.dropoffLon),
         dayOfWeek,
-        hour: parseInt(data.requestedHour24),  // ⭐ ONLY THE HOUR
+        hour: parseInt(data.requestedHour24),   // ONLY hour
       };
 
+      // -----------------------------
       // API URL
-      const PREDICT_API_URL = "https://scunlt76a3.execute-api.us-east-1.amazonaws.com";
+      // -----------------------------
+      const PREDICT_API_URL =
+        "https://scunlt76a3.execute-api.us-east-1.amazonaws.com/predict"; 
+      // ❗ IMPORTANT: Make sure /predict exists in your API routes
 
       const mlResponse = await fetch(PREDICT_API_URL, {
         method: "POST",
@@ -96,7 +95,7 @@ const WorkOrderForm = ({ addOrder }) => {
       const etaMinutes = prediction.etaMinutes ?? 0;
       const distanceKm = prediction.distanceKm ?? 0;
 
-      // Build work order
+      // Build work order entry for dashboard display
       const newOrder = {
         id: "WO-" + Math.floor(Math.random() * 10000),
         clientName: data.clientName,
@@ -125,6 +124,9 @@ const WorkOrderForm = ({ addOrder }) => {
     }
   };
 
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <Card className="gradient-card border-border p-6">
       <div className="mb-6 flex items-center gap-2">
@@ -133,6 +135,8 @@ const WorkOrderForm = ({ addOrder }) => {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        
+        {/* CLIENT NAME */}
         <div className="space-y-2">
           <Label htmlFor="clientName">Client Name</Label>
           <Input
@@ -146,6 +150,7 @@ const WorkOrderForm = ({ addOrder }) => {
           )}
         </div>
 
+        {/* LAT & LON */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="dropoffLat">Dropoff Latitude</Label>
@@ -174,12 +179,20 @@ const WorkOrderForm = ({ addOrder }) => {
           </div>
         </div>
 
+        {/* DATE */}
         <div className="space-y-2">
           <Label>Requested Start Date</Label>
-          <Input type="date" {...register("requestedDate")} className="bg-secondary border-border" />
+          <Input
+            type="date"
+            {...register("requestedDate")}
+            className="bg-secondary border-border"
+          />
+          {errors.requestedDate && (
+            <p className="text-sm text-destructive">{errors.requestedDate.message}</p>
+          )}
         </div>
 
-        {/* ⭐ NEW — 24 hour selector (00–23) */}
+        {/* 24 HOUR SELECTOR */}
         <div className="space-y-2">
           <Label>Departure Hour (24-hour format)</Label>
           <select
@@ -195,12 +208,11 @@ const WorkOrderForm = ({ addOrder }) => {
             ))}
           </select>
           {errors.requestedHour24 && (
-            <p className="text-sm text-destructive">
-              {errors.requestedHour24.message}
-            </p>
+            <p className="text-sm text-destructive">{errors.requestedHour24.message}</p>
           )}
         </div>
 
+        {/* SUBMIT BUTTON */}
         <Button
           type="submit"
           disabled={isSubmitting}
