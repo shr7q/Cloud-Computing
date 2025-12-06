@@ -175,7 +175,7 @@ const WorkOrderForm = ({ addOrder }) => {
         </div>
 
         <div className="space-y-2">
-          <Label>Requested Start Date (Optional)</Label>
+          <Label>Requested Start Date</Label>
           <Input type="date" {...register("requestedDate")} className="bg-secondary border-border" />
         </div>
 
