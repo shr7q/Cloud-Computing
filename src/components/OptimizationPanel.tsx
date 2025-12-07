@@ -19,8 +19,7 @@ interface OptimizationResult {
 }
 
 const OPTIMIZATION_API_URL =
-  "https://your-api-url.execute-api.amazonaws.com/prod/optimizer"; 
-// ⬆️ Replace this with your actual AWS API Gateway URL
+  "https://05db42vwkd.execute-api.us-east-1.amazonaws.com/default/FleetOptimizer"; 
 
 const OptimizationPanel = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
