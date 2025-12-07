@@ -44,7 +44,6 @@ const OrdersTable = ({ orders }) => {
                 <TableHead>Order ID</TableHead>
                 <TableHead>Client Name</TableHead>
                 <TableHead>Requested Time</TableHead>
-                <TableHead>Distance (km)</TableHead>
                 <TableHead>ETA (min)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Assigned Carrier</TableHead>
@@ -57,7 +56,6 @@ const OrdersTable = ({ orders }) => {
                   <TableCell>{order.id}</TableCell>
                   <TableCell>{order.clientName}</TableCell>
                   <TableCell>{new Date(order.requestedTime).toLocaleString()}</TableCell>
-                  <TableCell>{order.distance.toFixed(1)}</TableCell>
                   <TableCell>{order.eta}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
                   <TableCell>{order.assignedCarrier || "—"}</TableCell>
