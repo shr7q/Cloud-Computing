@@ -55,10 +55,15 @@ const OrdersTable = ({ orders }) => {
                 <TableRow key={order.id} className="border-border hover:bg-secondary/50">
                   <TableCell>{order.id}</TableCell>
                   <TableCell>{order.clientName}</TableCell>
-                  <TableCell>{new Date(order.requestedTime).toLocaleString()}</TableCell>
+                  <TableCell>
+                    {new Date(order.requestedTime).toLocaleString()}
+                  </TableCell>
                   <TableCell>{order.eta}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell>{order.assignedCarrier || "—"}</TableCell>
+
+                  {/* ⭐ FIXED: Use `order.carrier` instead of `assignedCarrier` */}
+                  <TableCell>{order.carrier || "—"}</TableCell>
+
                 </TableRow>
               ))}
             </TableBody>
