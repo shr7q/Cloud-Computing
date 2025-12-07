@@ -16,45 +16,42 @@ interface OptimizationResult {
   computationTime: number;
 }
 
+const OPTIMIZATION_API_URL =
+  "https://your-api-url.execute-api.amazonaws.com/prod/optimizer"; 
+// ⬆️ Replace this with YOUR actual API Gateway URL
+
 const OptimizationPanel = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [results, setResults] = useState<OptimizationResult | null>(null);
 
   const runOptimization = async () => {
     setIsOptimizing(true);
+    setResults(null); // clear any previous results
+
     try {
-      // TODO: Replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Mock optimization results
-      const mockResults: OptimizationResult = {
-        carriers: [
-          {
-            id: "C-001",
-            name: "Carrier Alpha",
-            orders: ["WO-001", "WO-003"],
-            totalDistance: 28.2,
-            totalTime: 57,
-          },
-          {
-            id: "C-002",
-            name: "Carrier Beta",
-            orders: ["WO-002"],
-            totalDistance: 8.3,
-            totalTime: 18,
-          },
-        ],
-        totalOptimizedDistance: 36.5,
-        computationTime: 1.8,
-      };
-
-      setResults(mockResults);
-      toast.success("Optimization complete", {
-        description: `Routes optimized in ${mockResults.computationTime}s`,
+      const response = await fetch(OPTIMIZATION_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ trigger: "run_optimizer" }),
       });
-    } catch (error) {
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Optimization API returned an error");
+      }
+
+      const data: OptimizationResult = await response.json();
+      setResults(data);
+
+      toast.success("Optimization complete", {
+        description: `Routes optimized in ${data.computationTime}s`,
+      });
+
+    } catch (error: any) {
       toast.error("Optimization failed", {
-        description: "Please try again or check your data.",
+        description: error.message || "Please try again or check your optimizer.",
       });
     } finally {
       setIsOptimizing(false);
@@ -63,12 +60,16 @@ const OptimizationPanel = () => {
 
   return (
     <Card className="gradient-card border-border p-6">
+      {/* Header */}
       <div className="mb-6 flex items-center gap-2">
         <Zap className="h-5 w-5 text-primary" />
-        <h2 className="text-xl font-semibold text-foreground">Route Optimization</h2>
+        <h2 className="text-xl font-semibold text-foreground">
+          Route Optimization
+        </h2>
       </div>
 
       <div className="space-y-6">
+        {/* Optimize Button */}
         <Button
           onClick={runOptimization}
           disabled={isOptimizing}
@@ -87,20 +88,26 @@ const OptimizationPanel = () => {
           )}
         </Button>
 
+        {/* Results Display */}
         {results && (
           <div className="space-y-4">
+            {/* Summary Card */}
             <div className="rounded-lg border border-success/30 bg-success/10 p-4">
               <div className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="font-semibold">Optimization Complete</span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Computed in {results.computationTime}s • Total Distance: {results.totalOptimizedDistance} km
+                Computed in {results.computationTime}s • Total Distance:{" "}
+                {results.totalOptimizedDistance} km
               </p>
             </div>
 
+            {/* Carrier Assignments */}
             <div className="space-y-3">
-              <h3 className="font-semibold text-foreground">Carrier Assignments</h3>
+              <h3 className="font-semibold text-foreground">
+                Carrier Assignments
+              </h3>
               {results.carriers.map((carrier) => (
                 <div
                   key={carrier.id}
@@ -108,18 +115,29 @@ const OptimizationPanel = () => {
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-semibold text-foreground">{carrier.name}</p>
-                      <p className="text-sm text-muted-foreground">ID: {carrier.id}</p>
+                      <p className="font-semibold text-foreground">
+                        {carrier.name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        ID: {carrier.id}
+                      </p>
                     </div>
+
                     <div className="text-right">
                       <p className="text-sm font-medium text-foreground">
                         {carrier.totalDistance} km
                       </p>
-                      <p className="text-xs text-muted-foreground">{carrier.totalTime} min</p>
+                      <p className="text-xs text-muted-foreground">
+                        {carrier.totalTime} min
+                      </p>
                     </div>
                   </div>
+
+                  {/* Orders */}
                   <div className="mt-3">
-                    <p className="text-sm text-muted-foreground">Assigned Orders:</p>
+                    <p className="text-sm text-muted-foreground">
+                      Assigned Orders:
+                    </p>
                     <div className="mt-1 flex flex-wrap gap-2">
                       {carrier.orders.map((orderId) => (
                         <span
@@ -135,6 +153,7 @@ const OptimizationPanel = () => {
               ))}
             </div>
 
+            {/* Raw JSON Viewer */}
             <details className="rounded-lg border border-border bg-secondary/30 p-4">
               <summary className="cursor-pointer font-semibold text-foreground">
                 View Raw JSON
