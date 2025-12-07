@@ -19,9 +19,9 @@ interface OptimizationResult {
 }
 
 const OPTIMIZATION_API_URL =
-  "https://25px4j4jh1.execute-api.us-east-1.amazonaws.com/run-optimizer"; 
+  "https://25px4j4jh1.execute-api.us-east-1.amazonaws.com/run-optimizer";
 
-const OptimizationPanel = () => {
+const OptimizationPanel = ({ orders, updateOrder }) => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [results, setResults] = useState<OptimizationResult | null>(null);
 
@@ -44,8 +44,22 @@ const OptimizationPanel = () => {
       const data: OptimizationResult = await response.json();
       setResults(data);
 
+      // ⭐ Update Orders with optimization assignment data
+      data.assignments.forEach((assignment, index) => {
+        const order = orders[index];
+        if (!order) return;
+
+        updateOrder(order.id, {
+          eta: assignment.p90_time_min
+            ? assignment.p90_time_min.toFixed(2)
+            : "0",
+          status: "Assigned",
+          carrier: assignment.carrier_id || "—",
+        });
+      });
+
       toast.success("Optimization complete", {
-        description: `Assignments generated successfully`,
+        description: `Assignments updated successfully`,
       });
     } catch (error: any) {
       toast.error("Optimization failed", {
