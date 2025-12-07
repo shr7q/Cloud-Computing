@@ -19,7 +19,8 @@ interface OptimizationResult {
 }
 
 const OPTIMIZATION_API_URL =
-  "https://05db42vwkd.execute-api.us-east-1.amazonaws.com/default/FleetOptimizer";
+  "https://your-api-url.execute-api.amazonaws.com/prod/optimizer"; 
+// ⬆️ Replace this with your actual AWS API Gateway URL
 
 const OptimizationPanel = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -27,7 +28,7 @@ const OptimizationPanel = () => {
 
   const runOptimization = async () => {
     setIsOptimizing(true);
-    setResults(null); // Clear old results
+    setResults(null);
 
     try {
       const response = await fetch(OPTIMIZATION_API_URL, {
@@ -38,7 +39,7 @@ const OptimizationPanel = () => {
 
       if (!response.ok) {
         const text = await response.text();
-        throw new Error(text || "Optimization API Error");
+        throw new Error(text || "Optimization API returned an error");
       }
 
       const data: OptimizationResult = await response.json();
@@ -47,10 +48,9 @@ const OptimizationPanel = () => {
       toast.success("Optimization complete", {
         description: `Assignments generated successfully`,
       });
-
     } catch (error: any) {
       toast.error("Optimization failed", {
-        description: error.message,
+        description: error.message || "Please check your optimizer.",
       });
     } finally {
       setIsOptimizing(false);
@@ -90,18 +90,18 @@ const OptimizationPanel = () => {
         {/* Results */}
         {results && (
           <div className="space-y-4">
-            {/* Summary */}
+            {/* Success Banner */}
             <div className="rounded-lg border border-success/30 bg-success/10 p-4">
               <div className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="font-semibold">Optimization Complete</span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Output saved at: {results.optimized_s3_key}
+                Output saved to S3: {results.optimized_s3_key}
               </p>
             </div>
 
-            {/* Assignment Table */}
+            {/* Assignments List */}
             <div className="space-y-3">
               <h3 className="font-semibold text-foreground">Assignments</h3>
 
@@ -125,7 +125,10 @@ const OptimizationPanel = () => {
 
                     <div className="text-right">
                       <p className="text-sm font-medium text-foreground">
-                        Time: {a.p90_time_min ? `${a.p90_time_min.toFixed(2)} min` : "N/A"}
+                        Time:{" "}
+                        {a.p90_time_min
+                          ? `${a.p90_time_min.toFixed(2)} min`
+                          : "N/A"}
                       </p>
                     </div>
                   </div>
@@ -133,7 +136,7 @@ const OptimizationPanel = () => {
               ))}
             </div>
 
-            {/* Raw JSON viewer */}
+            {/* Raw JSON Viewer */}
             <details className="rounded-lg border border-border bg-secondary/30 p-4">
               <summary className="cursor-pointer font-semibold text-foreground">
                 View Raw JSON
