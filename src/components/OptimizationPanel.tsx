@@ -19,7 +19,7 @@ interface OptimizationResult {
 }
 
 const OPTIMIZATION_API_URL =
-  "https://05db42vwkd.execute-api.us-east-1.amazonaws.com/default/FleetOptimizer"; 
+  "https://25px4j4jh1.execute-api.us-east-1.amazonaws.com/run-optimizer"; 
 
 const OptimizationPanel = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
