@@ -4,20 +4,22 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader2, Zap, CheckCircle2 } from "lucide-react";
 
+interface Assignment {
+  job_id: number;
+  carrier_id: string | null;
+  p90_time_min: number | null;
+  reason?: string;
+}
+
 interface OptimizationResult {
-  carriers: {
-    id: string;
-    name: string;
-    orders: string[];
-    totalDistance: number;
-    totalTime: number;
-  }[];
-  totalOptimizedDistance: number;
-  computationTime: number;
+  assignments: Assignment[];
+  optimized_s3_key: string;
+  deleted_input_file: boolean;
+  deleted_key: string;
 }
 
 const OPTIMIZATION_API_URL =
-  "https://05db42vwkd.execute-api.us-east-1.amazonaws.com/default/FleetOptimizer"
+  "https://05db42vwkd.execute-api.us-east-1.amazonaws.com/default/FleetOptimizer";
 
 const OptimizationPanel = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -25,32 +27,30 @@ const OptimizationPanel = () => {
 
   const runOptimization = async () => {
     setIsOptimizing(true);
-    setResults(null); // clear any previous results
+    setResults(null); // Clear old results
 
     try {
       const response = await fetch(OPTIMIZATION_API_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ trigger: "run_optimizer" }),
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Optimization API returned an error");
+        const text = await response.text();
+        throw new Error(text || "Optimization API Error");
       }
 
       const data: OptimizationResult = await response.json();
       setResults(data);
 
       toast.success("Optimization complete", {
-        description: `Routes optimized in ${data.computationTime}s`,
+        description: `Assignments generated successfully`,
       });
 
     } catch (error: any) {
       toast.error("Optimization failed", {
-        description: error.message || "Please try again or check your optimizer.",
+        description: error.message,
       });
     } finally {
       setIsOptimizing(false);
@@ -77,7 +77,7 @@ const OptimizationPanel = () => {
           {isOptimizing ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Optimizing Routes...
+              Optimizing...
             </>
           ) : (
             <>
@@ -87,72 +87,53 @@ const OptimizationPanel = () => {
           )}
         </Button>
 
-        {/* Results Display */}
+        {/* Results */}
         {results && (
           <div className="space-y-4">
-            {/* Summary Card */}
+            {/* Summary */}
             <div className="rounded-lg border border-success/30 bg-success/10 p-4">
               <div className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 <span className="font-semibold">Optimization Complete</span>
               </div>
               <p className="mt-2 text-sm text-muted-foreground">
-                Computed in {results.computationTime}s • Total Distance:{" "}
-                {results.totalOptimizedDistance} km
+                Output saved at: {results.optimized_s3_key}
               </p>
             </div>
 
-            {/* Carrier Assignments */}
+            {/* Assignment Table */}
             <div className="space-y-3">
-              <h3 className="font-semibold text-foreground">
-                Carrier Assignments
-              </h3>
-              {results.carriers.map((carrier) => (
+              <h3 className="font-semibold text-foreground">Assignments</h3>
+
+              {results.assignments.map((a, index) => (
                 <div
-                  key={carrier.id}
+                  key={index}
                   className="rounded-lg border border-border bg-secondary/50 p-4"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex justify-between">
                     <div>
                       <p className="font-semibold text-foreground">
-                        {carrier.name}
+                        Job ID: {a.job_id}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        ID: {carrier.id}
+                        Carrier ID: {a.carrier_id || "None Assigned"}
                       </p>
+                      {a.reason && (
+                        <p className="text-xs text-red-500 mt-1">{a.reason}</p>
+                      )}
                     </div>
 
                     <div className="text-right">
                       <p className="text-sm font-medium text-foreground">
-                        {carrier.totalDistance} km
+                        Time: {a.p90_time_min ? `${a.p90_time_min.toFixed(2)} min` : "N/A"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {carrier.totalTime} min
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Orders */}
-                  <div className="mt-3">
-                    <p className="text-sm text-muted-foreground">
-                      Assigned Orders:
-                    </p>
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {carrier.orders.map((orderId) => (
-                        <span
-                          key={orderId}
-                          className="rounded-md bg-primary/20 px-2 py-1 text-xs font-medium text-primary"
-                        >
-                          {orderId}
-                        </span>
-                      ))}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Raw JSON Viewer */}
+            {/* Raw JSON viewer */}
             <details className="rounded-lg border border-border bg-secondary/30 p-4">
               <summary className="cursor-pointer font-semibold text-foreground">
                 View Raw JSON
