@@ -14,9 +14,9 @@ const Index = () => {
   const [carriers, setCarriers] = useState([
     { id: "C1", lat: 39.0082, lng: -76.9597, hours_worked: 5.2 },
     { id: "C2", lat: 39.0150, lng: -76.9401, hours_worked: 6.8 },
-    { id: "C3", lat: 39.0205, lng: -76.9305, hours_worked: 9.1 },
-    { id: "C4", lat: 39.0165, lng: -76.9273, hours_worked: 2.0 },
-    { id: "C5", lat: 38.9845, lng: -76.9676, hours_worked: 7.3 },
+    { id: "C3", lat: 39.0205, lng: -76.9305, hours_worked: 4.1 },
+    { id: "C4", lat: 39.0165, lng: -76.9273, hours_worked: 8.92 },
+    { id: "C5", lat: 38.9845, lng: -76.9676, hours_worked: 9.1 },
   ]);
 
   const [orders, setOrders] = useState([]);
@@ -38,7 +38,7 @@ const Index = () => {
       <Header />
 
       <main className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        
+
         {/* Stats Grid */}
         <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           <StatsCard title="Active Orders" value={orders.length.toString()} icon={Truck} />
